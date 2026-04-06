@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Examen Final — Transformation Digitale</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f5f4f0; color: #1a1a1a; font-size: 15px; line-height: 1.6; }
+
+  .top-bar { background: #1a1a2e; color: white; padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .top-bar h1 { font-size: 15px; font-weight: 500; }
+  .timer-display { font-size: 20px; font-weight: 600; font-family: monospace; background: rgba(255,255,255,0.15); padding: 4px 12px; border-radius: 6px; letter-spacing: 2px; }
+  .timer-display.warning { background: #b45309; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.7} }
+
+  .progress-outer { height: 4px; background: rgba(0,0,0,0.1); }
+  .progress-inner { height: 4px; background: #534ab7; transition: width 0.4s; }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 2rem 1rem 8rem; }
+
+  .exam-header { background: white; border-radius: 12px; border: 0.5px solid #e0ded6; padding: 2rem; margin-bottom: 1.5rem; text-align: center; }
+  .exam-title { font-size: 22px; font-weight: 600; color: #1a1a2e; margin-bottom: 0.25rem; }
+  .exam-subtitle { font-size: 15px; color: #6b7280; margin-bottom: 1.25rem; }
+  .exam-meta { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .meta-badge { background: #f1efe8; color: #444; font-size: 12px; padding: 4px 12px; border-radius: 20px; }
+
+  .student-form { background: white; border-radius: 12px; border: 0.5px solid #e0ded6; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .student-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group label { display: block; font-size: 12px; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-group input { width: 100%; padding: 8px 12px; border: 0.5px solid #d1d0c9; border-radius: 8px; font-size: 14px; background: #f9f8f5; color: #1a1a1a; outline: none; }
+  .form-group input:focus { border-color: #534ab7; background: white; }
+  .form-group input.error { border-color: #e24b4a; background: #fcebeb; }
+
+  .part-header { background: #1a1a2e; color: white; border-radius: 12px 12px 0 0; padding: 1rem 1.5rem; margin-top: 2rem; }
+  .part-header h2 { font-size: 16px; font-weight: 500; }
+  .part-header .pts { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+
+  .section { background: white; border: 0.5px solid #e0ded6; border-top: none; }
+  .section:last-child { border-radius: 0 0 12px 12px; }
+  .section-header { padding: 1rem 1.5rem; border-bottom: 0.5px solid #e0ded6; background: #f9f8f5; }
+  .section-header h3 { font-size: 14px; font-weight: 500; color: #374151; }
+  .section-note { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+
+  .q-item { padding: 1rem 1.5rem; border-bottom: 0.5px solid #e0ded6; }
+  .q-item:last-child { border-bottom: none; }
+  .q-text { font-size: 14px; margin-bottom: 0.75rem; color: #374151; line-height: 1.5; }
+  .q-num { font-weight: 500; color: #1a1a2e; }
+
+  .vf-options { display: flex; gap: 8px; }
+  .vf-btn { padding: 6px 20px; border: 0.5px solid #d1d0c9; border-radius: 6px; font-size: 13px; cursor: pointer; background: #f9f8f5; color: #374151; transition: all 0.15s; }
+  .vf-btn:hover { border-color: #534ab7; color: #534ab7; }
+  .vf-btn.selected-vrai { background: #eeedfe; border-color: #534ab7; color: #3c3489; font-weight: 500; }
+  .vf-btn.selected-faux { background: #faeeda; border-color: #ba7517; color: #854f0b; font-weight: 500; }
+  .vf-btn.correct { background: #eaf3de; border-color: #3b6d11; color: #27500a; }
+  .vf-btn.incorrect { background: #fcebeb; border-color: #a32d2d; color: #791f1f; }
+
+  .qcm-options { display: flex; flex-direction: column; gap: 6px; }
+  .qcm-opt { display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border: 0.5px solid #e0ded6; border-radius: 8px; cursor: pointer; transition: all 0.15s; font-size: 13px; color: #374151; background: #f9f8f5; }
+  .qcm-opt:hover { border-color: #534ab7; background: #f5f4ff; }
+  .qcm-opt.selected { background: #eeedfe; border-color: #534ab7; color: #3c3489; }
+  .qcm-opt.correct { background: #eaf3de; border-color: #3b6d11; color: #27500a; }
+  .qcm-opt.incorrect { background: #fcebeb; border-color: #a32d2d; color: #791f1f; }
+  .opt-letter { font-weight: 500; min-width: 18px; }
+
+  .open-q { background: white; border-radius: 12px; border: 0.5px solid #e0ded6; margin-top: 1rem; overflow: hidden; }
+  .open-q-header { background: #f9f8f5; border-bottom: 0.5px solid #e0ded6; padding: 1rem 1.5rem; }
+  .open-q-title { font-size: 14px; font-weight: 500; color: #374151; }
+  .open-q-body { padding: 1rem 1.5rem; }
+  .open-q-prompt { font-size: 14px; color: #374151; margin-bottom: 0.75rem; line-height: 1.6; background: #f1efe8; padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid #534ab7; }
+  .open-q-body textarea { width: 100%; min-height: 130px; padding: 10px; border: 0.5px solid #d1d0c9; border-radius: 8px; font-size: 13px; font-family: inherit; resize: vertical; background: #f9f8f5; color: #1a1a1a; outline: none; line-height: 1.6; }
+  .open-q-body textarea:focus { border-color: #534ab7; background: white; }
+  .char-count { font-size: 11px; color: #9ca3af; text-align: right; margin-top: 4px; }
+
+  .case-context { background: #eeedfe; border: 0.5px solid #afa9ec; border-radius: 12px; padding: 1.25rem 1.5rem; margin: 1rem 0; }
+  .case-context h3 { font-size: 14px; font-weight: 500; color: #3c3489; margin-bottom: 0.75rem; }
+  .case-context p, .case-context li { font-size: 13px; color: #534ab7; line-height: 1.6; }
+  .case-context ul { padding-left: 1.25rem; }
+  .case-context li { margin-bottom: 4px; }
+
+  .feedback-inline { display: none; font-size: 12px; padding: 4px 8px; border-radius: 4px; margin-top: 6px; }
+  .feedback-inline.show { display: inline-block; }
+  .feedback-correct { background: #eaf3de; color: #27500a; }
+  .feedback-wrong { background: #fcebeb; color: #791f1f; }
+
+  /* LOADING OVERLAY */
+  .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(26,26,46,0.85); z-index: 300; align-items: center; justify-content: center; flex-direction: column; gap: 1.5rem; color: white; text-align: center; }
+  .loading-overlay.show { display: flex; }
+  .spinner { width: 48px; height: 48px; border: 3px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-title { font-size: 18px; font-weight: 500; }
+  .loading-steps { font-size: 13px; color: rgba(255,255,255,0.7); max-width: 320px; }
+  .step-item { padding: 4px 0; display: flex; align-items: center; gap: 8px; }
+  .step-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.3); flex-shrink: 0; }
+  .step-dot.done { background: #22c55e; }
+  .step-dot.active { background: white; animation: pulse 1s infinite; }
+
+  /* RESULTS */
+  .results-page { display: none; }
+  .results-page.show { display: block; }
+  .results-header { background: white; border-radius: 12px; border: 0.5px solid #e0ded6; padding: 2rem; text-align: center; margin-bottom: 1.5rem; }
+  .score-circle { width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-direction: column; margin: 0 auto 1rem; }
+  .score-num { font-size: 32px; font-weight: 600; }
+  .score-den { font-size: 14px; opacity: 0.7; }
+  .mention-badge { display: inline-block; padding: 6px 20px; border-radius: 20px; font-size: 14px; font-weight: 500; margin: 0.5rem 0; }
+  .results-detail { background: white; border-radius: 12px; border: 0.5px solid #e0ded6; overflow: hidden; margin-bottom: 1.5rem; }
+  .results-row { display: flex; justify-content: space-between; align-items: center; padding: 0.875rem 1.5rem; border-bottom: 0.5px solid #e0ded6; font-size: 14px; }
+  .results-row:last-child { border-bottom: none; }
+
+  /* AI GRADING SECTION */
+  .ai-grading-section { background: white; border-radius: 12px; border: 0.5px solid #e0ded6; margin-bottom: 1.5rem; overflow: hidden; }
+  .ai-grading-header { background: #eeedfe; border-bottom: 0.5px solid #afa9ec; padding: 1rem 1.5rem; display: flex; align-items: center; gap: 10px; }
+  .ai-grading-header svg { color: #534ab7; }
+  .ai-grading-header h3 { font-size: 15px; font-weight: 500; color: #3c3489; }
+  .ai-grading-header p { font-size: 12px; color: #534ab7; margin-top: 2px; }
+  .ai-q-block { padding: 1.25rem 1.5rem; border-bottom: 0.5px solid #e0ded6; }
+  .ai-q-block:last-child { border-bottom: none; }
+  .ai-q-label { font-size: 12px; font-weight: 500; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .ai-q-feedback { font-size: 13px; color: #374151; line-height: 1.6; background: #f9f8f5; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 0.75rem; }
+  .ai-score-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .ai-score-proposed { font-size: 14px; font-weight: 500; color: #534ab7; background: #eeedfe; padding: 4px 12px; border-radius: 6px; }
+  .ai-score-note { font-size: 12px; color: #9ca3af; }
+  .pending-badge { display: inline-block; background: #faeeda; color: #854f0b; font-size: 12px; padding: 4px 10px; border-radius: 6px; }
+
+  .info-box { background: #e6f1fb; border: 0.5px solid #85b7eb; border-radius: 8px; padding: 0.875rem 1rem; font-size: 13px; color: #185fa5; margin-bottom: 1.5rem; display: flex; gap: 10px; }
+  .action-btns { display: flex; gap: 8px; justify-content: center; margin-top: 1.5rem; }
+  .btn-secondary { background: white; color: #1a1a2e; border: 0.5px solid #d1d0c9; padding: 10px 24px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+  .btn-primary { background: #1a1a2e; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+
+  .action-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 0.5px solid #e0ded6; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+  .progress-text { font-size: 13px; color: #6b7280; }
+  .submit-btn { background: #1a1a2e; color: white; border: none; padding: 10px 28px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 500; }
+  .submit-btn:hover { background: #2d2d4e; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: white; border-radius: 12px; padding: 2rem; max-width: 420px; width: 90%; text-align: center; }
+  .modal h3 { font-size: 18px; margin-bottom: 0.5rem; }
+  .modal p { font-size: 14px; color: #6b7280; margin-bottom: 1.5rem; line-height: 1.6; }
+  .modal-btns { display: flex; gap: 8px; justify-content: center; }
+
+  @media (max-width: 600px) {
+    .student-grid { grid-template-columns: 1fr; }
+    .action-bar { padding: 0.75rem 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <h1>Examen — Transformation Digitale | Master 2 SRS</h1>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    <span class="timer-display" id="timer">02:00:00</span>
+  </div>
+</div>
+<div class="progress-outer"><div class="progress-inner" id="progress-bar" style="width:0%"></div></div>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-title">Traitement en cours...</div>
+  <div class="loading-steps" id="loading-steps">
+    <div class="step-item"><div class="step-dot" id="step1-dot"></div><span id="step1-text">Calcul du score Partie I...</span></div>
+    <div class="step-item"><div class="step-dot" id="step2-dot"></div><span id="step2-text">Envoi de votre copie...</span></div>
+    <div class="step-item"><div class="step-dot" id="step3-dot"></div><span id="step3-text">Confirmation...</span></div>
+  </div>
+</div>
+
+<!-- EXAM CONTENT -->
+<div class="container" id="exam-content">
+
+  <div class="exam-header">
+    <div class="exam-title">EXAMEN FINAL — Transformation Digitale</div>
+    <div class="exam-subtitle">Année universitaire 2024–2025</div>
+    <div class="exam-meta">
+      <span class="meta-badge">Master 2 — Sécurité des Réseaux et Systèmes</span>
+      <span class="meta-badge">Durée : 2 heures</span>
+      <span class="meta-badge">Total : 100 points</span>
+      <span class="meta-badge">Documents non autorisés</span>
+    </div>
+  </div>
+
+  <!-- STUDENT INFO -->
+  <div class="student-form">
+    <div style="font-size:13px;font-weight:500;color:#374151;margin-bottom:1rem;">Informations de l'étudiant(e) <span style="color:#e24b4a">*</span></div>
+    <div class="student-grid">
+      <div class="form-group"><label>Nom & Prénom *</label><input type="text" id="s-nom" placeholder="Votre nom complet"></div>
+      <div class="form-group"><label>Email *</label><input type="email" id="s-email" placeholder="email@etudiant.dz"></div>
+      <div class="form-group"><label>N° Matricule *</label><input type="text" id="s-matricule" placeholder="ex: 20240123"></div>
+      <div class="form-group"><label>Groupe / Section</label><input type="text" id="s-groupe" placeholder="ex: G1"></div>
+    </div>
+  </div>
+
+  <!-- PARTIE I -->
+  <div class="part-header">
+    <h2>PARTIE I — Vrai / Faux &amp; QCM</h2>
+    <div class="pts">25 points · Chapitres 1, 2, 3, 4, 5</div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <h3>I.A — Vrai / Faux (10 points)</h3>
+      <div class="section-note">1 point par bonne réponse, −0,5 en cas d'erreur.</div>
+    </div>
+    <div id="vf-container"></div>
+  </div>
+
+  <div class="section" style="border-top:0.5px solid #e0ded6;margin-top:1rem;border-radius:0 0 12px 12px;">
+    <div class="section-header">
+      <h3>I.B — QCM (15 points)</h3>
+      <div class="section-note">3 points par question. Une seule bonne réponse.</div>
+    </div>
+    <div id="qcm-container"></div>
+  </div>
+
+  <!-- PARTIE II -->
+  <div class="part-header" style="margin-top:2rem;">
+    <h2>PARTIE II — Questions à Réponses Courtes</h2>
+    <div class="pts">25 points · 3 à 8 lignes maximum par réponse</div>
+  </div>
+  <div id="short-container"></div>
+
+  <!-- PARTIE III -->
+  <div class="part-header" style="margin-top:2rem;">
+    <h2>PARTIE III — Étude de Cas : AlgérieAssure SA</h2>
+    <div class="pts">40 points · Audit, architecture, stratégie</div>
+  </div>
+  <div class="section" style="border-radius:0 0 12px 12px;">
+    <div class="case-context">
+      <h3>Contexte — AlgérieAssure SA</h3>
+      <p>AlgérieAssure SA est une compagnie d'assurance algérienne fondée en 1998, employant 1 200 personnes sur 5 wilayas. Chiffre d'affaires annuel : 8 milliards de dinars, croissance 12 %/an.</p>
+      <br>
+      <p><strong>Problèmes identifiés :</strong></p>
+      <ul>
+        <li>(a) Aucune solution de cybersécurité — 2 vols de données clients en 2023.</li>
+        <li>(b) Concurrents déjà présents en ligne (portails + apps mobiles).</li>
+        <li>(c) Direction souhaite migrer vers le cloud + portail client digital en 18 mois.</li>
+        <li>(d) Aucune conformité RGPD ni ISO 27001.</li>
+        <li>(e) 80 % des employés +45 ans sans formation numérique.</li>
+      </ul>
+    </div>
+  </div>
+  <div id="case-container"></div>
+
+  <!-- PARTIE IV -->
+  <div class="part-header" style="margin-top:2rem;">
+    <h2>PARTIE IV — Question de Synthèse &amp; Argumentation</h2>
+    <div class="pts">10 points · Environ 15 à 20 lignes</div>
+  </div>
+  <div class="open-q">
+    <div class="open-q-header"><div class="open-q-title">Question IV (10 pts)</div></div>
+    <div class="open-q-body">
+      <div class="open-q-prompt">
+        <em>« La cybersécurité est un frein à la transformation digitale car elle ralentit l'innovation et alourdit les processus. »</em><br><br>
+        Dans quelle mesure êtes-vous d'accord ou en désaccord ? Appuyez-vous sur Security by Design, Zero Trust, DevSecOps, normes ISO/NIST et des exemples concrets.
+      </div>
+      <textarea id="q4-text" placeholder="Rédigez votre réponse ici..." style="min-height:180px;" oninput="updateChar(this,'q4-chars')"></textarea>
+      <div class="char-count" id="q4-chars">0 caractères</div>
+    </div>
+  </div>
+
+</div><!-- end exam-content -->
+
+<!-- RESULTS PAGE -->
+<div class="container results-page" id="results-page">
+
+  <div class="results-header" id="results-header"></div>
+
+  <!-- PARTIE I SCORES -->
+  <div class="results-detail" id="results-detail"></div>
+
+  <!-- AI GRADING -->
+  <div class="ai-grading-section" id="ai-grading-section">
+    <div class="ai-grading-header">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#534ab7" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      <div>
+        <h3>Évaluation IA — Parties II, III &amp; IV</h3>
+        <p>Propositions de notes générées par Claude · Validation requise par l'enseignant</p>
+      </div>
+    </div>
+    <div id="ai-results-body"></div>
+  </div>
+
+  <div class="info-box">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#185fa5" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span>Un email récapitulatif a été envoyé à votre adresse. L'enseignant recevra également toutes les réponses et les propositions de notes de l'IA. Votre note définitive vous sera communiquée après validation par l'enseignant.</span>
+  </div>
+
+  <div class="action-btns">
+    <button class="btn-secondary" onclick="window.print()">Imprimer / PDF</button>
+  </div>
+</div>
+
+<!-- ACTION BAR -->
+<div class="action-bar" id="action-bar">
+  <div class="progress-text" id="progress-text">0 / 15 réponses objectives</div>
+  <button class="submit-btn" onclick="showConfirm()">Soumettre l'examen</button>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>Soumettre l'examen ?</h3>
+    <p>Vous avez répondu à <strong id="modal-count">0</strong> / 15 questions objectives.<br>Après soumission, vos réponses seront envoyées à l'enseignant et évaluées par l'IA.<br><br>Cette action est <strong>irréversible</strong>.</p>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="submit-btn" onclick="submitExam()">Confirmer &amp; Soumettre</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// ⚙️  CONFIGURATION — À MODIFIER
+// ═══════════════════════════════════════════════════════
+const CONFIG = {
+  // URL de votre serveur Laravel
+  API_URL: window.location.origin + "/api/submit-exam",
+};
+// ═══════════════════════════════════════════════════════
+
+// DATA
+const VF_QUESTIONS = [
+  { id:'vf1', text:"La transformation digitale se limite à la numérisation des documents papier.", correct:'FAUX' },
+  { id:'vf2', text:"Le modèle SaaS permet au client de gérer l'infrastructure matérielle.", correct:'FAUX' },
+  { id:'vf3', text:"Le principe du moindre privilège stipule que chaque utilisateur doit avoir uniquement les droits strictement nécessaires à ses fonctions.", correct:'VRAI' },
+  { id:'vf4', text:"L'ISO 27001 est une norme certifiable qui porte sur le système de management de la sécurité de l'information.", correct:'VRAI' },
+  { id:'vf5', text:"Dans le modèle Zero Trust, tout trafic interne au réseau de l'entreprise est automatiquement de confiance.", correct:'FAUX' },
+  { id:'vf6', text:"EBIOS Risk Manager est la méthode d'analyse des risques publiée par l'ANSSI, reconnue par l'ISO 27005.", correct:'VRAI' },
+  { id:'vf7', text:"Le RGPD s'applique uniquement aux entreprises ayant leur siège social dans un pays de l'Union Européenne.", correct:'FAUX' },
+  { id:'vf8', text:"Dans Scrum, le Scrum Master est responsable de la priorisation du Product Backlog.", correct:'FAUX' },
+  { id:'vf9', text:"Le modèle de Kotter propose 8 étapes pour conduire le changement organisationnel.", correct:'VRAI' },
+  { id:'vf10', text:"Un ransomware est un logiciel malveillant qui chiffre les données d'une organisation contre une demande de rançon.", correct:'VRAI' },
+];
+
+const QCM_QUESTIONS = [
+  { id:'qcm1', pts:3, text:"Parmi les affirmations suivantes sur le Cloud Computing, laquelle est CORRECTE ?", correct:'C',
+    options:[{l:'A',text:"L'IaaS gère les applications à la place du client."},{l:'B',text:"Le Cloud privé offre une scalabilité illimitée à faible coût."},{l:'C',text:"Le PaaS fournit une plateforme pour développer des applications sans gérer l'infrastructure sous-jacente."},{l:'D',text:"Dans un Cloud public, l'entreprise est responsable de la sécurité physique des serveurs."}]},
+  { id:'qcm2', pts:3, text:"Quelle est la principale caractéristique de l'architecture Zero Trust ?", correct:'B',
+    options:[{l:'A',text:"Elle fait confiance par défaut au trafic interne."},{l:'B',text:"Elle repose sur « ne jamais faire confiance, toujours vérifier » pour chaque accès."},{l:'C',text:"Elle élimine le besoin de chiffrement des données en transit."},{l:'D',text:"Elle s'applique uniquement aux organisations avec un budget IT > 10M€."}]},
+  { id:'qcm3', pts:3, text:"Dans la méthode Scrum, qui est responsable de la priorisation du Product Backlog ?", correct:'C',
+    options:[{l:'A',text:"Le Scrum Master"},{l:'B',text:"L'équipe de développement"},{l:'C',text:"Le Product Owner"},{l:'D',text:"La direction générale"}]},
+  { id:'qcm4', pts:3, text:"Lequel des éléments suivants NE fait PAS partie des 5V du Big Data ?", correct:'C',
+    options:[{l:'A',text:"Volume"},{l:'B',text:"Velocity"},{l:'C',text:"Visibility"},{l:'D',text:"Veracity"}]},
+  { id:'qcm5', pts:3, text:"Parmi les référentiels suivants, lequel est dédié à la GOUVERNANCE des SI ?", correct:'C',
+    options:[{l:'A',text:"ITIL 4"},{l:'B',text:"ISO 27001"},{l:'C',text:"COBIT 2019"},{l:'D',text:"NIST Cybersecurity Framework"}]},
+];
+
+const SHORT_QUESTIONS = [
+  { id:'s1', pts:5, title:"Question II.1", barème:"Distinction claire des 3 concepts (1pt chacun) + exemples pertinents (2pts)", prompt:"Expliquez la différence entre Numérisation, Digitalisation et Transformation Digitale. Donnez un exemple concret pour chacun des trois concepts." },
+  { id:'s2', pts:5, title:"Question II.2", barème:"Définition Security by Design (2pts) + argument justifiant l'intégration amont (2pts) + exemple (1pt)", prompt:"Qu'est-ce que le principe de Security by Design ? Pourquoi est-il préférable d'intégrer la sécurité dès la conception plutôt qu'après le déploiement ? Illustrez avec un exemple." },
+  { id:'s3', pts:5, title:"Question II.3", barème:"Définition IAM (1pt) + 3 mécanismes (1pt chacun) + rôle du moindre privilège (1pt)", prompt:"Définissez l'IAM. Présentez trois mécanismes concrets d'IAM et expliquez le rôle du principe du moindre privilège." },
+  { id:'s4', pts:5, title:"Question II.4", barème:"Définition RGPD (1pt) + 3 obligations (1pt chacune) + sanctions (1pt)", prompt:"Qu'est-ce que le RGPD ? Citez trois obligations qu'il impose aux organisations et précisez les sanctions en cas de non-conformité." },
+  { id:'s5', pts:5, title:"Question II.5", barème:"Description Build-Measure-Learn (2pts) + pertinence pour grande organisation (2pts) + exemple (1pt)", prompt:"Expliquez le modèle Lean Startup (Build-Measure-Learn). En quoi est-il adapté à l'innovation dans une grande organisation se transformant digitalement ?" },
+];
+
+const CASE_QUESTIONS = [
+  { id:'c1', pts:8, title:"Question III.1 (8 pts)", barème:"4 axes évalués (2pts chacun) : note justifiée + cohérence avec le contexte AlgérieAssure", prompt:"Réalisez un audit de maturité digitale d'AlgérieAssure SA en évaluant : Stratégie & Gouvernance, Cybersécurité, Expérience Client, Processus & Opérations (échelle 1–5). Justifiez chaque note." },
+  { id:'c2', pts:10, title:"Question III.2 (10 pts)", barème:"4 risques (2,5pts chacun) : identification + cotation Vraisemblance×Impact + stratégie de traitement + mesure concrète", prompt:"Identifiez et cotez les 4 risques les plus critiques pour AlgérieAssure SA. Pour chacun : stratégie de traitement (Réduire/Accepter/Transférer/Éviter) + mesure concrète." },
+  { id:'c3', pts:12, title:"Question III.3 (12 pts)", barème:"Choix cloud justifié (3pts) + composants sécurité IAM/SIEM/chiffrement/firewall (6pts) + approche Zero Trust (3pts)", prompt:"Proposez une architecture SI sécurisée pour AlgérieAssure SA : choix cloud (public/privé/hybride) justifié, composants sécurité essentiels (IAM, chiffrement, SIEM, pare-feu), approche Zero Trust." },
+  { id:'c4', pts:10, title:"Question III.4 (10 pts)", barème:"3 phases cohérentes (2pts chacune) + livrables (1,5pts) + KPIs (1,5pts) + plan conduite du changement (2pts)", prompt:"Proposez une roadmap 24 mois en 3 phases pour AlgérieAssure SA : actions prioritaires, livrables, KPIs + plan conduite du changement pour les résistances." },
+];
+
+const OPEN_Q4 = { id:'q4', pts:10, title:"Question IV", barème:"Position argumentée (2pts) + mobilisation concepts cours (4pts) + exemples concrets (2pts) + structure/qualité rédaction (2pts)", prompt:"Cybersécurité : frein ou accélérateur de la transformation digitale ? Mobilisez Security by Design, Zero Trust, DevSecOps, ISO/NIST et des exemples concrets." };
+
+// STATE
+const answers = {};
+let submitted = false;
+let timerInterval;
+let secondsLeft = 7200;
+
+// BUILD UI
+function buildVF() {
+  const el = document.getElementById('vf-container');
+  VF_QUESTIONS.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.className = 'q-item';
+    div.innerHTML = `
+      <div class="q-text"><span class="q-num">${i+1}.</span> ${q.text}</div>
+      <div class="vf-options">
+        <button class="vf-btn" onclick="selectVF('${q.id}','VRAI',this)" id="${q.id}-VRAI">VRAI</button>
+        <button class="vf-btn" onclick="selectVF('${q.id}','FAUX',this)" id="${q.id}-FAUX">FAUX</button>
+      </div>
+      <div class="feedback-inline" id="${q.id}-fb"></div>`;
+    el.appendChild(div);
+  });
+}
+
+function buildQCM() {
+  const el = document.getElementById('qcm-container');
+  QCM_QUESTIONS.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.className = 'q-item';
+    const opts = q.options.map(o => `
+      <div class="qcm-opt" onclick="selectQCM('${q.id}','${o.l}',this)" id="${q.id}-${o.l}">
+        <span class="opt-letter">${o.l})</span><span>${o.text}</span>
+      </div>`).join('');
+    div.innerHTML = `<div class="q-text"><span class="q-num">Question ${i+1}</span> (3 pts) — ${q.text}</div><div class="qcm-options">${opts}</div><div class="feedback-inline" id="${q.id}-fb"></div>`;
+    el.appendChild(div);
+  });
+}
+
+function buildShort() {
+  const el = document.getElementById('short-container');
+  SHORT_QUESTIONS.forEach(q => {
+    const div = document.createElement('div');
+    div.className = 'open-q';
+    div.innerHTML = `
+      <div class="open-q-header"><div class="open-q-title">${q.title} (${q.pts} pts)</div></div>
+      <div class="open-q-body">
+        <div class="open-q-prompt">${q.prompt}</div>
+        <textarea id="${q.id}-text" placeholder="Rédigez votre réponse ici..." oninput="updateChar(this,'${q.id}-chars')"></textarea>
+        <div class="char-count" id="${q.id}-chars">0 caractères</div>
+      </div>`;
+    el.appendChild(div);
+  });
+}
+
+function buildCase() {
+  const el = document.getElementById('case-container');
+  CASE_QUESTIONS.forEach(q => {
+    const div = document.createElement('div');
+    div.className = 'open-q';
+    div.style.marginTop = '1rem';
+    div.innerHTML = `
+      <div class="open-q-header"><div class="open-q-title">${q.title}</div></div>
+      <div class="open-q-body">
+        <div class="open-q-prompt">${q.prompt}</div>
+        <textarea id="${q.id}-text" placeholder="Rédigez votre réponse ici..." style="min-height:160px;" oninput="updateChar(this,'${q.id}-chars')"></textarea>
+        <div class="char-count" id="${q.id}-chars">0 caractères</div>
+      </div>`;
+    el.appendChild(div);
+  });
+}
+
+function selectVF(id, val) {
+  if (submitted) return;
+  answers[id] = val;
+  ['VRAI','FAUX'].forEach(v => {
+    const btn = document.getElementById(id+'-'+v);
+    btn.className = 'vf-btn' + (v === val ? (val==='VRAI' ? ' selected-vrai' : ' selected-faux') : '');
+  });
+  updateProgress();
+}
+
+function selectQCM(id, val) {
+  if (submitted) return;
+  answers[id] = val;
+  const q = QCM_QUESTIONS.find(x => x.id === id);
+  q.options.forEach(o => {
+    document.getElementById(id+'-'+o.l).className = 'qcm-opt' + (o.l === val ? ' selected' : '');
+  });
+  updateProgress();
+}
+
+function updateChar(ta, charId) {
+  document.getElementById(charId).textContent = ta.value.length + ' caractères';
+}
+
+function updateProgress() {
+  const total = VF_QUESTIONS.length + QCM_QUESTIONS.length;
+  const answered = Object.keys(answers).length;
+  document.getElementById('progress-text').textContent = answered + ' / ' + total + ' réponses objectives';
+  document.getElementById('progress-bar').style.width = Math.round(answered / total * 100) + '%';
+  document.getElementById('modal-count').textContent = answered;
+}
+
+function startTimer() {
+  document.getElementById('s-date') && (document.getElementById('s-date') || {}).value;
+  timerInterval = setInterval(() => {
+    secondsLeft--;
+    if (secondsLeft <= 0) { clearInterval(timerInterval); submitExam(); return; }
+    const h = String(Math.floor(secondsLeft/3600)).padStart(2,'0');
+    const m = String(Math.floor((secondsLeft%3600)/60)).padStart(2,'0');
+    const s = String(secondsLeft%60).padStart(2,'0');
+    document.getElementById('timer').textContent = h+':'+m+':'+s;
+    if (secondsLeft <= 600) document.getElementById('timer').classList.add('warning');
+  }, 1000);
+}
+
+function showConfirm() {
+  // Validate required fields
+  const nom = document.getElementById('s-nom').value.trim();
+  const email = document.getElementById('s-email').value.trim();
+  const mat = document.getElementById('s-matricule').value.trim();
+  let ok = true;
+  ['s-nom','s-email','s-matricule'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el.value.trim()) { el.classList.add('error'); ok = false; }
+    else el.classList.remove('error');
+  });
+  if (!ok) { alert('Veuillez remplir au moins votre nom, email et matricule.'); return; }
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+
+// ── MAIN SUBMIT ──────────────────────────────────────────
+async function submitExam() {
+  closeModal();
+  submitted = true;
+  clearInterval(timerInterval);
+  document.querySelectorAll('.vf-btn, .qcm-opt, textarea').forEach(el => { el.disabled = true; el.style.cursor = 'default'; });
+
+  // Show loading
+  const overlay = document.getElementById('loading-overlay');
+  overlay.classList.add('show');
+
+  // STEP 1: Score Partie I
+  setStep(1, 'active');
+  let scoreVF = 0;
+  VF_QUESTIONS.forEach(q => {
+    const ans = answers[q.id];
+    if (ans === q.correct) scoreVF += 1;
+    else if (ans) scoreVF -= 0.5;
+  });
+  let scoreQCM = 0;
+  QCM_QUESTIONS.forEach(q => { if (answers[q.id] === q.correct) scoreQCM += 3; });
+  const score1 = Math.max(0, scoreVF) + scoreQCM;
+  await sleep(800);
+  setStep(1, 'done');
+
+  // Collect open answers
+  const openAnswers = {};
+  SHORT_QUESTIONS.forEach(q => { openAnswers[q.id] = (document.getElementById(q.id+'-text') || {}).value || ''; });
+  CASE_QUESTIONS.forEach(q => { openAnswers[q.id] = (document.getElementById(q.id+'-text') || {}).value || ''; });
+  openAnswers['q4'] = (document.getElementById('q4-text') || {}).value || '';
+
+  const studentInfo = {
+    nom: document.getElementById('s-nom').value.trim(),
+    email: document.getElementById('s-email').value.trim(),
+    matricule: document.getElementById('s-matricule').value.trim(),
+    groupe: document.getElementById('s-groupe').value.trim(),
+    date: new Date().toLocaleString('fr-FR'),
+    score_p1: score1,
+  };
+
+  // STEP 2: Send to Laravel server
+  setStep(2, 'active');
+  let serverOk = false;
+  try {
+    const payload = { studentInfo, answers, openAnswers, score1 };
+    const resp = await fetch(CONFIG.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    serverOk = data.success;
+  } catch(e) { console.warn('Envoi échoué:', e); }
+  await sleep(800);
+  setStep(2, 'done');
+
+  // STEP 3: Confirmation
+  setStep(3, 'active');
+  await sleep(600);
+  setStep(3, 'done');
+  await sleep(400);
+
+  overlay.classList.remove('show');
+
+  // SHOW RESULTS (without AI grading — just show P1 score)
+  showResults(score1, scoreVF, scoreQCM, studentInfo, serverOk);
+}
+
+// ── SHOW RESULTS ─────────────────────────────────────────
+function showResults(score1, scoreVF, scoreQCM, student, serverOk) {
+  // Apply VF/QCM visual feedback
+  VF_QUESTIONS.forEach(q => {
+    const ans = answers[q.id];
+    const fb = document.getElementById(q.id+'-fb');
+    if (ans === q.correct) {
+      if (ans) document.getElementById(q.id+'-'+ans) && document.getElementById(q.id+'-'+ans).classList.add('correct');
+      fb.textContent = 'Correct — +1 pt'; fb.className = 'feedback-inline show feedback-correct';
+    } else if (ans) {
+      document.getElementById(q.id+'-'+ans) && document.getElementById(q.id+'-'+ans).classList.add('incorrect');
+      fb.textContent = 'Incorrect — −0,5 pt (réponse : '+q.correct+')'; fb.className = 'feedback-inline show feedback-wrong';
+    } else {
+      fb.textContent = 'Non répondu — 0 pt'; fb.className = 'feedback-inline show feedback-wrong';
+    }
+  });
+  QCM_QUESTIONS.forEach(q => {
+    const ans = answers[q.id];
+    const fb = document.getElementById(q.id+'-fb');
+    if (ans === q.correct) {
+      document.getElementById(q.id+'-'+ans) && document.getElementById(q.id+'-'+ans).classList.add('correct');
+      fb.textContent = 'Correct — +3 pts'; fb.className = 'feedback-inline show feedback-correct';
+    } else if (ans) {
+      document.getElementById(q.id+'-'+ans) && document.getElementById(q.id+'-'+ans).classList.add('incorrect');
+      fb.textContent = 'Incorrect — 0 pt (réponse : '+q.correct+')'; fb.className = 'feedback-inline show feedback-wrong';
+    } else {
+      fb.textContent = 'Non répondu — 0 pt'; fb.className = 'feedback-inline show feedback-wrong';
+    }
+  });
+
+  const pct = score1 / 25;
+  const mention = getMention(pct);
+
+  // Header
+  document.getElementById('results-header').innerHTML = `
+    <div class="score-circle" style="background:${mention.bg};color:${mention.color};">
+      <div class="score-num">${score1.toFixed(1)}</div>
+      <div class="score-den">/ 25</div>
+    </div>
+    <div style="font-size:18px;font-weight:500;margin-bottom:0.25rem;">${student.nom}</div>
+    <div style="font-size:13px;color:#6b7280;margin-bottom:0.75rem;">Matricule : ${student.matricule} · ${student.date}</div>
+    <div style="background:#eaf3de;border-radius:8px;padding:12px 16px;margin:12px auto;max-width:400px;border:0.5px solid #b2d99c;">
+      <strong style="color:#27500a;">Copie soumise avec succes</strong><br>
+      <span style="font-size:13px;color:#27500a;">Votre copie a ete enregistree. La note des parties II, III et IV vous sera communiquee par email apres correction par l'enseignant.</span>
+    </div>
+  `;
+
+  // Detail table — only show P1 scores
+  document.getElementById('results-detail').innerHTML = `
+    <div class="results-row"><span>Partie I.A — Vrai/Faux</span><span style="font-weight:500">${Math.max(0,scoreVF).toFixed(1)} / 10</span></div>
+    <div class="results-row"><span>Partie I.B — QCM</span><span style="font-weight:500">${scoreQCM} / 15</span></div>
+    <div class="results-row" style="background:#f9f8f5"><span style="font-weight:500">Sous-total Partie I</span><span style="font-weight:600">${score1.toFixed(1)} / 25</span></div>
+    <div class="results-row"><span>Parties II, III, IV</span><span style="font-weight:500;color:#9ca3af;">En attente de correction</span></div>
+  `;
+
+  // Hide AI grading section (not used)
+  document.getElementById('ai-grading-section').style.display = 'none';
+
+  // Update info box
+  document.querySelector('.info-box span').textContent = serverOk
+    ? 'Votre copie a ete enregistree avec succes. Les parties ouvertes (II, III, IV) seront corrigees par l\'enseignant. Vous recevrez votre note definitive par email.'
+    : 'Attention : l\'envoi a rencontre un probleme. Veuillez contacter votre enseignant.';
+
+  // Switch views
+  document.getElementById('exam-content').style.display = 'none';
+  document.getElementById('action-bar').style.display = 'none';
+  document.getElementById('results-page').classList.add('show');
+  window.scrollTo(0, 0);
+}
+
+function getMention(pct) {
+  if (pct >= 0.9) return { label:'Excellent', bg:'#eaf3de', color:'#27500a' };
+  if (pct >= 0.75) return { label:'Bien', bg:'#eeedfe', color:'#3c3489' };
+  if (pct >= 0.6) return { label:'Assez Bien', bg:'#faeeda', color:'#854f0b' };
+  if (pct >= 0.5) return { label:'Passable', bg:'#e6f1fb', color:'#185fa5' };
+  return { label:'Insuffisant', bg:'#fcebeb', color:'#791f1f' };
+}
+
+function setStep(n, state) {
+  const dot = document.getElementById('step'+n+'-dot');
+  dot.className = 'step-dot ' + state;
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// INIT
+buildVF(); buildQCM(); buildShort(); buildCase(); startTimer(); updateProgress();
+</script>
+</body>
+</html>
